@@ -2,15 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { Activity } from 'lucide-react';
+import OnboardingScreens from './OnboardingScreens/OnboardingScreens';
 
 const SplashScreen: React.FC = () => {
   const [progress, setProgress] = useState<number>(0);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
 
   useEffect(() => {
     const timer: NodeJS.Timeout = setInterval(() => {
       setProgress((prev: number) => {
         if (prev >= 100) {
           clearInterval(timer);
+          // Hide splash screen after 500ms
+          setTimeout(() => {
+            setShowSplash(false);
+          }, 500);
           return 100;
         }
         return prev + 2;
@@ -20,6 +26,12 @@ const SplashScreen: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // If splash screen is done, show onboarding
+  if (!showSplash) {
+    return <OnboardingScreens />; // Return your OnboardingScreens component here
+  }
+
+  // Otherwise show splash screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex flex-col items-center justify-center p-6">
       {/* Logo Container */}
