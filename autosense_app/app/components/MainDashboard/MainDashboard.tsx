@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useState, useEffect, use } from 'react';
 import { 
   Activity, Bell, Menu, Car, Gauge, Battery, Droplet, ThermometerSun, 
   AlertTriangle, CheckCircle, Clock, ChevronRight, PlayCircle, FileText, Zap,
@@ -6,6 +8,8 @@ import {
   BarChart3, Radio, Thermometer, Wind
 } from 'lucide-react';
 import LiveMonitoringScreen from '../LiveMonitoringScreen/LiveMonitoringScreen';
+import DiagnosticScanScreen from '../DiagnosticScanScreen/DiagnosticScanScreen';
+import ScanResultScreen from '../ScanResultScreen/ScanResultScreen';
 
 export default function MainDashboard() {
   const [selectedVehicle, setSelectedVehicle] = useState('Tesla Model 3');
@@ -18,8 +22,10 @@ export default function MainDashboard() {
   const [notifications] = useState(3);
   const [showLiveMonitor, setShowLiveMonitor] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showReports, setShowReports] = useState(false);
-  
+  const [showVehicleSelector, setShowVehicleSelector] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [diagnosticSource, setDiagnosticSource] = useState<'dashboard' | 'livemonitor'>('dashboard');
+  const [showScanResult, setShowScanResult] = useState(false);
 
   // Color mapping with proper Tailwind classes
   const statusColors = {
@@ -72,9 +78,36 @@ export default function MainDashboard() {
     }, 50);
   };
 
+    if (showDiagnostic) {
+    return (
+      <DiagnosticScanScreen 
+        onBackToLiveMonitor={() => {
+          setShowDiagnostic(false);
+          if (diagnosticSource === 'livemonitor') {
+            setShowLiveMonitor(true);
+          }
+        }}
+        onviewReport={() => {          // ← add this
+          setShowDiagnostic(false);
+          setShowScanResult(true);
+        }}
+      />
+    );
+  }
+
   if (showLiveMonitor) {
-  return <LiveMonitoringScreen />;
-}
+    return <LiveMonitoringScreen 
+      onBack={() => setShowLiveMonitor(false)}
+      onRunDiagnostic={() => {
+        setDiagnosticSource('livemonitor');
+        setShowLiveMonitor(false);
+        setShowDiagnostic(true);
+      }} />;
+  }
+
+  if (showScanResult) {
+    return <ScanResultScreen />;
+  }
 
   // Handle quick action clicks
   const handleQuickAction = (action: string) => {
@@ -83,7 +116,7 @@ export default function MainDashboard() {
         startDiagnosticScan();
         break;
       case 'View Reports':
-        setShowReports(true);
+        setShowScanResult(true);
         setTimeout(() => alert('Opening Reports Dashboard'), 300);
         break;
       case 'History':
@@ -99,7 +132,6 @@ export default function MainDashboard() {
   };
 
   // Toggle vehicle selection
-  const [showVehicleSelector, setShowVehicleSelector] = useState(false);
   const vehicles = [
     { id: 1, name: 'Tesla Model 3', status: 'connected' },
     { id: 2, name: 'Honda Civic', status: 'disconnected' },
@@ -109,7 +141,7 @@ export default function MainDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 pt-8 pb-24 rounded-b-3xl shadow-xl">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 pt-8 pb-20 rounded-b-3xl shadow-xl">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <button 

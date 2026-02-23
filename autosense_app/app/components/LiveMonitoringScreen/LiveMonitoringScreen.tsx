@@ -1,205 +1,106 @@
-import React, { useState, useEffect, useCallback } from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Activity, Gauge, Thermometer, Zap, Droplet, Wind, Radio, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { on } from 'events';
 
-// Static configurations
-const METRICS_CONFIG = [
-  { 
-    id: 'rpm',
-    icon: Gauge, 
-    label: 'Engine RPM', 
-    unit: 'RPM',
-    max: 6000,
-    color: 'blue',
-    colorClass: 'bg-blue-500 bg-opacity-20 text-blue-400',
-    barColor: 'from-blue-500 to-blue-600'
-  },
-  { 
-    id: 'speed',
-    icon: Activity, 
-    label: 'Speed', 
-    unit: 'MPH',
-    max: 120,
-    color: 'purple',
-    colorClass: 'bg-purple-500 bg-opacity-20 text-purple-400',
-    barColor: 'from-purple-500 to-purple-600'
-  },
-  { 
-    id: 'temp',
-    icon: Thermometer, 
-    label: 'Coolant Temp', 
-    unit: '°F',
-    max: 120,
-    color: 'red',
-    colorClass: 'bg-red-500 bg-opacity-20 text-red-400',
-    barColor: 'from-red-500 to-red-600'
-  },
-  { 
-    id: 'voltage',
-    icon: Zap, 
-    label: 'Voltage', 
-    unit: 'V',
-    max: 15,
-    color: 'green',
-    colorClass: 'bg-green-500 bg-opacity-20 text-green-400',
-    barColor: 'from-green-500 to-green-600'
-  }
-];
+interface LiveMonitoringScreenProps {
+  onBack: () => void;
+  onRunDiagnostic: () => void;
+}
 
-const LIVE_STATS_CONFIG = [
-  { id: 'fuel', label: 'Fuel Level', trend: 'down', icon: Droplet },
-  { id: 'air', label: 'Air Intake', trend: 'neutral', icon: Wind },
-  { id: 'transmission', label: 'Transmission', trend: 'neutral', icon: Radio },
-  { id: 'oil', label: 'Oil Pressure', trend: 'up', icon: Droplet }
-];
 
-export default function LiveMonitoringScreen() {
-  // All hooks at the top - no conditionals
+
+export default function LiveMonitoringScreen({ onBack, onRunDiagnostic }: LiveMonitoringScreenProps) {
   const [isLive, setIsLive] = useState(true);
   const [rpm, setRpm] = useState(2400);
   const [speed, setSpeed] = useState(65);
   const [temp, setTemp] = useState(92);
   const [voltage, setVoltage] = useState(12.6);
-  const [isMounted, setIsMounted] = useState(false);
 
-  // Initialize on mount
-  useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
-  }, []);
-
-  // Live updates effect - simplified
+  // Simulate live data updates
   useEffect(() => {
     if (!isLive) return;
-
+    
     const interval = setInterval(() => {
-      if (!isMounted) return;
-      
-      setRpm(prev => {
-        const change = (Math.random() - 0.5) * 200;
-        return Math.max(800, Math.min(6000, prev + change));
-      });
-      
-      setSpeed(prev => {
-        const change = (Math.random() - 0.5) * 5;
-        return Math.max(0, Math.min(120, prev + change));
-      });
-      
-      setTemp(prev => {
-        const change = (Math.random() - 0.5) * 2;
-        return Math.max(80, Math.min(110, prev + change));
-      });
-      
-      setVoltage(prev => {
-        const change = (Math.random() - 0.5) * 0.2;
-        return Math.max(11.5, Math.min(14.5, prev + change));
-      });
+      setRpm(prev => Math.max(800, Math.min(6000, prev + (Math.random() - 0.5) * 200)));
+      setSpeed(prev => Math.max(0, Math.min(120, prev + (Math.random() - 0.5) * 5)));
+      setTemp(prev => Math.max(80, Math.min(110, prev + (Math.random() - 0.5) * 2)));
+      setVoltage(prev => Math.max(11.5, Math.min(14.5, prev + (Math.random() - 0.5) * 0.2)));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isLive, isMounted]);
+  }, [isLive]);
 
-  // Memoized calculations
-  const metrics = React.useMemo(() => {
-    return METRICS_CONFIG.map(config => {
-      let value = 0;
-      let status = 'normal';
-      
-      switch (config.id) {
-        case 'rpm':
-          value = rpm;
-          status = rpm > 4500 ? 'high' : rpm > 3000 ? 'medium' : 'normal';
-          break;
-        case 'speed':
-          value = speed;
-          status = speed > 80 ? 'high' : speed > 60 ? 'medium' : 'normal';
-          break;
-        case 'temp':
-          value = temp;
-          status = temp > 105 ? 'high' : temp > 95 ? 'medium' : 'normal';
-          break;
-        case 'voltage':
-          value = voltage;
-          status = voltage < 12 || voltage > 14 ? 'high' : 'normal';
-          break;
-      }
-      
-      const displayValue = config.id === 'voltage' ? value.toFixed(1) : Math.round(value).toString();
-      const percentage = (value / config.max) * 100;
-      
-      return {
-        ...config,
-        value,
-        displayValue,
-        status,
-        percentage: Math.min(percentage, 100)
-      };
-    });
-  }, [rpm, speed, temp, voltage]);
+  const metrics = [
+    { 
+      icon: Gauge, 
+      label: 'Engine RPM', 
+      value: Math.round(rpm),       // display value
+      rawValue: rpm,                // ← add this
+      unit: 'RPM',
+      max: 6000,
+      status: rpm > 4500 ? 'high' : rpm > 3000 ? 'medium' : 'normal',
+      color: 'blue'
+    },
+    { 
+      icon: Activity, 
+      label: 'Speed', 
+      value: Math.round(speed),
+      rawValue: speed,              // ← add this
+      unit: 'MPH',
+      max: 120,
+      status: speed > 80 ? 'high' : speed > 60 ? 'medium' : 'normal',
+      color: 'purple'
+    },
+    { 
+      icon: Thermometer, 
+      label: 'Coolant Temp', 
+      value: Math.round(temp),
+      rawValue: temp,               // ← add this
+      unit: '°F',
+      max: 120,
+      status: temp > 105 ? 'high' : temp > 95 ? 'medium' : 'normal',
+      color: 'red'
+    },
+    { 
+      icon: Zap, 
+      label: 'Voltage', 
+      value: voltage.toFixed(1),    // string for display — this was the culprit
+      rawValue: voltage,            // ← add this
+      unit: 'V',
+      max: 15,
+      status: voltage < 12 || voltage > 14 ? 'high' : 'normal',
+      color: 'green'
+    }
+  ];
 
-  const liveStats = React.useMemo(() => {
-    return LIVE_STATS_CONFIG.map(config => {
-      let value = '';
-      
-      switch (config.id) {
-        case 'fuel':
-          value = '68%';
-          break;
-        case 'air':
-          value = 'Normal';
-          break;
-        case 'transmission':
-          value = 'D4';
-          break;
-        case 'oil':
-          value = '45 PSI';
-          break;
-      }
-      
-      return {
-        ...config,
-        value
-      };
-    });
-  }, []);
-
-  // Event handlers
-  const handleBack = useCallback(() => {
-    window.history.back();
-  }, []);
-
-  const toggleLive = useCallback(() => {
-    setIsLive(prev => !prev);
-  }, []);
-
-  const runDiagnostic = useCallback(() => {
-    alert('Starting diagnostic scan...');
-  }, []);
-
-  const exportData = useCallback(() => {
-    alert('Exporting data...');
-  }, []);
-
-  // If you're still getting the error, try this absolute minimal version first:
-  // return <div>Test</div>;
+  const liveStats = [
+    { label: 'Fuel Level', value: '68%', trend: 'down', icon: Droplet },
+    { label: 'Air Intake', value: 'Normal', trend: 'neutral', icon: Wind },
+    { label: 'Transmission', value: 'D4', trend: 'neutral', icon: Radio },
+    { label: 'Oil Pressure', value: '45 PSI', trend: 'up', icon: Droplet }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+      <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="px-6 pt-8 pb-6">
         <div className="flex items-center justify-between mb-6">
           <button 
-            onClick={handleBack}
-            className="text-white hover:text-slate-300 transition-colors p-2 hover:bg-white/10 rounded-lg"
+            onClick={onBack}
+            className="text-white hover:text-slate-300 transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-xl font-bold">Live Monitoring</h1>
           <button 
-            onClick={toggleLive}
+            onClick={() => setIsLive(!isLive)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
               isLive 
-                ? 'bg-green-500 text-white hover:bg-green-600' 
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-green-500 text-white' 
+                : 'bg-slate-700 text-slate-300'
             }`}
           >
             {isLive ? 'LIVE' : 'PAUSED'}
@@ -218,18 +119,19 @@ export default function LiveMonitoringScreen() {
       {/* Main Gauges Grid */}
       <div className="px-6 mb-6">
         <div className="grid grid-cols-2 gap-4">
-          {metrics.map((metric) => {
+          {metrics.map((metric, index) => {
             const Icon = metric.icon;
+            const percentage = (metric.rawValue / metric.max) * 100;
             
             return (
               <div 
-                key={metric.id}
-                className="bg-slate-800 bg-opacity-50 backdrop-blur-sm rounded-2xl p-5 border border-slate-700 shadow-xl hover:border-slate-600 transition-all duration-300"
+                key={index}
+                className="bg-slate-800 bg-opacity-50 backdrop-blur-sm rounded-2xl p-5 border border-slate-700 shadow-xl"
               >
                 {/* Icon and Label */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-full ${metric.colorClass.split(' ')[0]} flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 ${metric.colorClass.split(' ')[2]}`} />
+                  <div className={`w-10 h-10 rounded-full bg-${metric.color}-500 bg-opacity-20 flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 text-${metric.color}-400`} />
                   </div>
                   <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
                     metric.status === 'high' 
@@ -245,7 +147,7 @@ export default function LiveMonitoringScreen() {
                 {/* Value Display */}
                 <div className="mb-3">
                   <p className="text-3xl font-bold text-white mb-1">
-                    {metric.displayValue}
+                    {metric.value}
                   </p>
                   <p className="text-slate-400 text-xs">
                     {metric.label} <span className="text-slate-500">({metric.unit})</span>
@@ -260,9 +162,9 @@ export default function LiveMonitoringScreen() {
                         ? 'bg-gradient-to-r from-red-500 to-red-600' 
                         : metric.status === 'medium'
                         ? 'bg-gradient-to-r from-amber-500 to-amber-600'
-                        : `bg-gradient-to-r ${metric.barColor}`
+                        : `bg-gradient-to-r from-${metric.color}-500 to-${metric.color}-600`
                     }`}
-                    style={{ width: `${metric.percentage}%` }}
+                    style={{ width: `${Math.min(percentage, 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -275,14 +177,14 @@ export default function LiveMonitoringScreen() {
       <div className="px-6 mb-6">
         <h3 className="text-white font-bold text-lg mb-4">Additional Metrics</h3>
         <div className="grid grid-cols-2 gap-3">
-          {liveStats.map((stat) => {
+          {liveStats.map((stat, index) => {
             const Icon = stat.icon;
             const TrendIcon = stat.trend === 'up' ? TrendingUp : stat.trend === 'down' ? TrendingDown : Minus;
             
             return (
               <div 
-                key={stat.id}
-                className="bg-slate-800 bg-opacity-50 backdrop-blur-sm rounded-xl p-4 border border-slate-700 hover:border-slate-600 transition-all duration-300"
+                key={index}
+                className="bg-slate-800 bg-opacity-50 backdrop-blur-sm rounded-xl p-4 border border-slate-700"
               >
                 <div className="flex items-center justify-between mb-2">
                   <Icon className="w-5 h-5 text-slate-400" />
@@ -342,18 +244,19 @@ export default function LiveMonitoringScreen() {
       <div className="px-6 pb-8">
         <div className="grid grid-cols-2 gap-3">
           <button 
-            onClick={runDiagnostic}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3.5 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
+            onClick={onRunDiagnostic}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3.5 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
           >
             Run Diagnostic
           </button>
           <button 
-            onClick={exportData}
-            className="bg-slate-700 text-white font-semibold py-3.5 rounded-xl hover:bg-slate-600 transition-all border border-slate-600 hover:border-slate-500"
+            onClick={() => alert('Export Data')}
+            className="bg-slate-700 text-white font-semibold py-3.5 rounded-xl hover:bg-slate-600 transition-all border border-slate-600"
           >
             Export Data
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
