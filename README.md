@@ -69,6 +69,6 @@ The system focuses on improving driver safety, vehicle maintenance awareness, an
 
 Developed by **Yashini Nethma**
 
-GitHub: https://github.com/your-username
+GitHub: https://github.com/Yashini2002
 
 ---
